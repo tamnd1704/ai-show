@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Art Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.11.4/dist/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f0f1a;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        .gallery-item {
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .gallery-item:hover {
+            transform: scale(1.05) rotateY(10deg);
+            box-shadow: 0 25px 50px rgba(255, 165, 0, 0.3);
+        }
+        
+        .menu-item {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 165, 0, 0.4), transparent);
+            transition: 0.5s;
+        }
+        
+        .menu-item:hover::before {
+            left: 100%;
+        }
+        
+        .active-menu {
+            border-left: 4px solid #ff9500;
+            background: rgba(255, 149, 0, 0.1);
+        }
+        
+        .three-d-container {
+            perspective: 1000px;
+        }
+        
+        .three-d-card {
+            transform-style: preserve-3d;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotateY(0);
+            }
+            50% {
+                transform: translateY(-20px) rotateY(5deg);
+            }
+        }
+        
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+        
+        .video-thumbnail::after {
+            content: '\f144';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .parallax-bg {
+            background-attachment: fixed;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 3D Background Effect -->
+    <div id="threejs-bg" class="fixed top-0 left-0 w-full h-full -z-10"></div>
+    
+    <!-- Navigation -->
+    <div class="fixed top-0 left-0 h-full w-64 bg-black bg-opacity-80 backdrop-filter backdrop-blur-lg shadow-2xl z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
+        <div class="p-6">
+            <div class="three-d-container mb-10">
+                <div class="three-d-card text-center">
+                    <h1 class="text-3xl font-bold text-orange-500 mb-2">AI ART GALLERY</h1>
+                    <p class="text-gray-400 text-sm">Showcase of AI Creations</p>
+                </div>
+            </div>
+            
+            <nav class="space-y-2">
+                <a href="#" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300 active-menu">
+                    <i class="fas fa-home mr-3 text-orange-500"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="#icons" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-icons mr-3 text-blue-500"></i>
+                    <span>Icons</span>
+                </a>
+                
+                <a href="#logos" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-gamepad mr-3 text-purple-500"></i>
+                    <span>Game Logos</span>
+                </a>
+                
+                <a href="#elements" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-shapes mr-3 text-green-500"></i>
+                    <span>Elements & Items</span>
+                </a>
+                
+                <a href="#bgm" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-music mr-3 text-yellow-500"></i>
+                    <span>BGM</span>
+                </a>
+                
+                <a href="#videos" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-video mr-3 text-red-500"></i>
+                    <span>Videos</span>
+                </a>
+                
+                <a href="#characters" class="menu-item flex items-center p-3 rounded-lg text-white hover:bg-gray-800 transition-all duration-300">
+                    <i class="fas fa-user-astronaut mr-3 text-pink-500"></i>
+                    <span>Characters</span>
+                </a>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 w-full p-6">
+                <div class="text-center text-gray-500 text-sm">
+                    <p>AI Generated Content</p>
+                    <p class="mt-1">© 2023 All Rights Reserved</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Menu Button -->
+    <button id="menu-toggle" class="fixed top-4 left-4 z-50 md:hidden bg-orange-500 text-white p-3 rounded-full shadow-lg">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Main Content -->
+    <div class="ml-0 md:ml-64 transition-all duration-300 min-h-screen">
+        <!-- Hero Section -->
+        <section class="relative h-screen flex items-center justify-center overflow-hidden parallax-bg" style="background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80')">
+            <div class="container mx-auto px-6 text-center relative z-10">
+                <div class="three-d-container">
+                    <div class="three-d-card">
+                        <h1 class="text-5xl md:text-7xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-yellow-300">
+                            AI CREATIONS GALLERY
+                        </h1>
+                        <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+                            Explore my collection of AI-generated icons, logos, game elements, music, videos and characters
+                        </p>
+                        <div class="mt-10">
+                            <button class="px-8 py-3 bg-gradient-to-r from-orange-500 to-yellow-400 text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                                Start Exploring
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="absolute bottom-10 left-0 right-0 text-center animate-bounce">
+                <i class="fas fa-chevron-down text-2xl text-orange-400"></i>
+            </div>
+        </section>
+        
+        <!-- Icons Section -->
+        <section id="icons" class="py-20 px-6 bg-gray-900">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Icons</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">Collection of AI-generated icons for various purposes</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- Icon Items -->
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Icon+1" alt="AI Icon" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Minimal App Icon</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, SVG</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Icon+2" alt="AI Icon" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Game UI Icons</h3>
+                            <p class="text-gray-400">Generated with Midjourney</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, SVG</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Icon+3" alt="AI Icon" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Social Media Pack</h3>
+                            <p class="text-gray-400">Generated with DALL-E</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, SVG</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Icon+4" alt="AI Icon" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Fantasy RPG Icons</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, SVG</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Game Logos Section -->
+        <section id="logos" class="py-20 px-6 bg-gray-800">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Game Logos</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">AI-generated logos for games and brands</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- Logo Items -->
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Game+Logo+1" alt="Game Logo" class="w-full h-64 object-contain bg-white p-4">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Cyberpunk Logo</h3>
+                            <p class="text-gray-400">Generated with Midjourney</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, EPS</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Game+Logo+2" alt="Game Logo" class="w-full h-64 object-contain bg-white p-4">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Fantasy RPG Logo</h3>
+                            <p class="text-gray-400">Generated with DALL-E</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, EPS</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Game+Logo+3" alt="Game Logo" class="w-full h-64 object-contain bg-white p-4">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Retro Arcade Logo</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, EPS</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Elements & Items Section -->
+        <section id="elements" class="py-20 px-6 bg-gray-900">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Elements & Items</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">Game UI elements, items, and other graphic components</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- Element Items -->
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=UI+Element+1" alt="UI Element" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Inventory Items</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=UI+Element+2" alt="UI Element" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Health Bars</h3>
+                            <p class="text-gray-400">Generated with Midjourney</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=UI+Element+3" alt="UI Element" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Skill Icons</h3>
+                            <p class="text-gray-400">Generated with DALL-E</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/333333/ffffff?text=UI+Element+4" alt="UI Element" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Currency Set</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- BGM Section -->
+        <section id="bgm" class="py-20 px-6 bg-gray-800">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Background Music</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">AI-generated background music for games and videos</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- BGM Items -->
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <div class="w-full h-64 bg-gradient-to-br from-purple-900 to-blue-800 flex items-center justify-center">
+                            <i class="fas fa-music text-6xl text-white opacity-50"></i>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Epic Battle Theme</h3>
+                            <p class="text-gray-400">Generated with AIVA</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP3, WAV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <div class="w-full h-64 bg-gradient-to-br from-green-900 to-teal-800 flex items-center justify-center">
+                            <i class="fas fa-music text-6xl text-white opacity-50"></i>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Forest Ambience</h3>
+                            <p class="text-gray-400">Generated with Soundraw</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP3, WAV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <div class="w-full h-64 bg-gradient-to-br from-red-900 to-orange-800 flex items-center justify-center">
+                            <i class="fas fa-music text-6xl text-white opacity-50"></i>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Cyberpunk City</h3>
+                            <p class="text-gray-400">Generated with Boomy</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP3, WAV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Videos Section -->
+        <section id="videos" class="py-20 px-6 bg-gray-900">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Videos</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">AI-generated video content and animations</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- Video Items -->
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <div class="relative w-full h-64 video-thumbnail">
+                            <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Video+1" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Sci-Fi Trailer</h3>
+                            <p class="text-gray-400">Generated with Runway ML</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP4, MOV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <div class="relative w-full h-64 video-thumbnail">
+                            <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Video+2" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Fantasy Landscape</h3>
+                            <p class="text-gray-400">Generated with Pika Labs</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP4, MOV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <div class="relative w-full h-64 video-thumbnail">
+                            <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Video+3" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Abstract Animation</h3>
+                            <p class="text-gray-400">Generated with Kaiber</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP4, MOV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-800 rounded-xl overflow-hidden shadow-xl">
+                        <div class="relative w-full h-64 video-thumbnail">
+                            <img src="https://via.placeholder.com/600x400/333333/ffffff?text=Video+4" alt="Video Thumbnail" class="w-full h-full object-cover">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Character Animation</h3>
+                            <p class="text-gray-400">Generated with Synthesia</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">MP4, MOV</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Characters Section -->
+        <section id="characters" class="py-20 px-6 bg-gray-800">
+            <div class="container mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold mb-4 text-orange-400">Characters</h2>
+                    <p class="text-xl text-gray-400 max-w-3xl mx-auto">AI-generated character designs and concepts</p>
+                </div>
+                
+                <div class="grid-layout">
+                    <!-- Character Items -->
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Character+1" alt="Character" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Cyber Ninja</h3>
+                            <p class="text-gray-400">Generated with Midjourney</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Character+2" alt="Character" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Fantasy Warrior</h3>
+                            <p class="text-gray-400">Generated with Stable Diffusion</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Character+3" alt="Character" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Steampunk Inventor</h3>
+                            <p class="text-gray-400">Generated with DALL-E</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="gallery-item bg-gray-700 rounded-xl overflow-hidden shadow-xl">
+                        <img src="https://via.placeholder.com/600x400/444444/ffffff?text=Character+4" alt="Character" class="w-full h-64 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold mb-2">Space Explorer</h3>
+                            <p class="text-gray-400">Generated with Midjourney</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                <span class="text-sm text-orange-400">PNG, PSD</span>
+                                <button class="text-orange-400 hover:text-orange-300">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <footer class="bg-black py-12 px-6">
+            <div class="container mx-auto">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-6 md:mb-0">
+                        <h2 class="text-2xl font-bold text-orange-400 mb-2">AI ART GALLERY</h2>
+                        <p class="text-gray-500">Showcase of AI-generated content</p>
+                    </div>
+                    
+                    <div class="flex space-x-6">
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+                            <i class="fab fa-artstation text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-orange-400 transition-colors duration-300">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-800 mt-10 pt-10 text-center text-gray-500">
+                    <p>© 2023 AI Art Gallery. All content generated with AI tools.</p>
+                    <p class="mt-2">This is a showcase portfolio, not for commercial use.</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <!-- Modal for Media View -->
+    <div id="media-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-90 p-4">
+        <div class="relative w-full max-w-4xl">
+            <button id="close-modal" class="absolute -top-12 right-0 text-white text-3xl hover:text-orange-400 transition-colors duration-300">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="bg-gray-900 rounded-xl overflow-hidden">
+                <img id="modal-image" src="" alt="" class="w-full max-h-[70vh] object-contain">
+                <div class="p-6">
+                    <h3 id="modal-title" class="text-2xl font-bold mb-2"></h3>
+                    <p id="modal-description" class="text-gray-400 mb-4"></p>
+                    <div class="flex justify-between items-center">
+                        <span id="modal-format" class="text-sm text-orange-400"></span>
+                        <button id="modal-download" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors duration-300">
+                            <i class="fas fa-download mr-2"></i> Download
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Three.js Background
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        document.getElementById('threejs-bg').appendChild(renderer.domElement);
+        
+        // Create particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particleCount = 500;
+        
+        const posArray = new Float32Array(particleCount * 3);
+        const colorArray = new Float32Array(particleCount * 3);
+        
+        for(let i = 0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 10;
+            colorArray[i] = Math.random();
+        }
+        
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+        
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.05,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+        
+        camera.position.z = 3;
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            particlesMesh.rotation.x += 0.0005;
+            particlesMesh.rotation.y += 0.0005;
+            
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('translate-x-0');
+        });
+        
+        // Smooth scrolling for menu items
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+                
+                // Close mobile menu if open
+                if (window.innerWidth < 768) {
+                    sidebar.classList.remove('translate-x-0');
+                }
+            });
+        });
+        
+        // Gallery item click handler
+        document.querySelectorAll('.gallery-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const imgSrc = this.querySelector('img')?.src || '';
+                const title = this.querySelector('h3')?.textContent || '';
+                const description = this.querySelector('p')?.textContent || '';
+                const format = this.querySelector('span')?.textContent || '';
+                
+                document.getElementById('modal-image').src = imgSrc;
+                document.getElementById('modal-title').textContent = title;
+                document.getElementById('modal-description').textContent = description;
+                document.getElementById('modal-format').textContent = format;
+                
+                document.getElementById('media-modal').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+        });
+        
+        // Close modal
+        document.getElementById('close-modal').addEventListener('click', function() {
+            document.getElementById('media-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        });
+        
+        // GSAP animations
+        gsap.from(".three-d-card", {
+            duration: 1.5,
+            y: 50,
+            opacity: 0,
+            ease: "power3.out"
+        });
+        
+        gsap.from(".menu-item", {
+            duration: 1,
+            x: -20,
+            opacity: 0,
+            stagger: 0.1,
+            ease: "back.out(1.7)"
+        });
+        
+        gsap.from(".gallery-item", {
+            scrollTrigger: {
+                trigger: ".gallery-item",
+                start: "top 80%",
+                toggleActions: "play none none none"
+            },
+            duration: 0.8,
+            y: 50,
+            opacity: 0,
+            stagger: 0.1,
+            ease: "back.out(1.2)"
+        });
+        
+        // Parallax effect
+        window.addEventListener('scroll', function() {
+            const scrollPosition = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.parallax-bg');
+            
+            parallaxElements.forEach(element => {
+                element.style.backgroundPositionY = scrollPosition * 0.5 + 'px';
+            });
+        });
+    </script>
+</body>
+</html>
